@@ -1,10 +1,12 @@
+-- Схема соответствует ORM-моделям из GorkyCodeTest-Backend (src/database/models.py)
+
 -- Включаем расширение pgvector для хранения эмбеддингов и RAG-поиска
 CREATE EXTENSION IF NOT EXISTS vector;
 
 -- Таблица пользователей
 -- Имя "user" взято в двойные кавычки, так как user — зарезервированное слово в PostgreSQL
 CREATE TABLE IF NOT EXISTS "user" (
-    -- ID пользователя во ВКонтакте
+    -- ID пользователя во ВКонтакте (задаётся извне, поэтому не BIGSERIAL)
     user_id BIGINT PRIMARY KEY,
 
     -- Имя и фамилия
@@ -36,18 +38,23 @@ CREATE TABLE IF NOT EXISTS tasks (
     -- Краткая выжимка из raw_text без даты
     title TEXT NOT NULL,
 
-    -- Эмбеддинг title для RAG (1536 — стандарт для OpenAI text-embedding-3-small / ada-002).
-    -- Поменяйте размерность под вашу модель при необходимости (1024 для BGE-M3/E5-large, 768 для nomic/mpnet, 384 для MiniLM).
-    title_vector vector(1536),
+    -- Эмбеддинг для RAG. Размерность должна совпадать с EMBEDDING_DIMENSION в ORM (768)
+    title_vector vector(768),
 
-    -- Абсолютная дата и время события
-    date TIMESTAMPTZ NOT NULL,
+    -- Дата события
+    date DATE NOT NULL,
 
     -- Время и дата, когда нужно напомнить о событии
     date_notify TIMESTAMPTZ,
 
     -- Изначальное сырое сообщение пользователя
-    raw_text TEXT NOT NULL
+    raw_text TEXT NOT NULL,
+
+    -- Время события (если указано)
+    time TIME,
+
+    -- Отправлено ли уже напоминание
+    is_notified BOOLEAN DEFAULT false
 );
 
 -- Индекс для быстрой выборки задач конкретного пользователя по дате
@@ -62,3 +69,13 @@ CREATE INDEX IF NOT EXISTS idx_tasks_date_notify
 -- HNSW-индекс для быстрого векторного поиска по косинусному сходству (RAG)
 CREATE INDEX IF NOT EXISTS idx_tasks_title_vector_hnsw
     ON tasks USING hnsw (title_vector vector_cosine_ops);
+
+-- Выполненные запросы к API: по query_id (UUID4 из X-Request-ID) отсекаются повторы
+CREATE TABLE IF NOT EXISTS done_tasks (
+    query_id UUID NOT NULL,
+
+    -- Когда запрос был выполнен
+    created_at TIMESTAMP DEFAULT now() NOT NULL,
+
+    CONSTRAINT done_tasks_pk PRIMARY KEY (query_id)
+);
