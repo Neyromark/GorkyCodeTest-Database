@@ -42,6 +42,10 @@ docker compose up -d --build
 Healthcheck (`pg_isready`) позволяет `Notifications` ждать готовности БД через
 `depends_on: condition: service_healthy`.
 
+`POSTGRES_PASSWORD` применяется только при создании тома: если `postgres_data`
+уже существует с другим паролем, задайте прежний пароль (иначе `Notifications`
+не подключится) либо пересоздайте том.
+
 ## Схема
 
 ```
