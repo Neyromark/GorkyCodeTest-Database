@@ -25,10 +25,6 @@ services:
     networks:
       - app-network
 
-networks:
-  app-network:
-    external: true
-    name: app-network
 
 volumes:
   postgres_data:
