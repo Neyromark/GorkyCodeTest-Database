@@ -5,6 +5,9 @@ services:
       dockerfile: Dockerfile
     container_name: tasks_postgres_db
     restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
@@ -19,6 +22,13 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    external: true
+    name: app-network
 
 volumes:
   postgres_data:
